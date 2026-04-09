@@ -39,7 +39,7 @@ class FeasibleGreedySolver(BaseSolver):
 
                 # Check if adding this request causes a violation
                 violation = False
-                for d in range(delivery_day, pickup_day):
+                for d in range(delivery_day, pickup_day + 1):
                     current = tool_use[request.tool][d]
                     available = self.instance.Tools[request.tool - 1].amount
                     if current + request.toolCount > available:
@@ -64,13 +64,13 @@ class FeasibleGreedySolver(BaseSolver):
 
             # Update tool usage
             pickup_day = delivery_day + request.numDays
-            for d in range(delivery_day, pickup_day):
+            for d in range(delivery_day, pickup_day + 1):
                 tool_use[request.tool][d] += request.toolCount
 
             if debug:
                 print(f"  Delivery day: {delivery_day}, Pickup day: {pickup_day}")
                 print(f"  Tool {request.tool} usage after planning:")
-                for d in range(delivery_day, pickup_day):
+                for d in range(delivery_day, pickup_day + 1):
                     print(f"    Day {d}: {tool_use[request.tool][d]}/{self.instance.Tools[request.tool-1].amount}")
 
             # Add delivery route
