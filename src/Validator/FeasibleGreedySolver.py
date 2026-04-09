@@ -25,7 +25,8 @@ class FeasibleGreedySolver(BaseSolver):
             print("FeasibleGreedySolver - Debug output")
             print("="*60)
 
-        for request in self.instance.Requests:
+        sorted_requests = sorted(self.instance.Requests, key=lambda r: r.fromDay)
+        for request in sorted_requests:
             delivery_day = request.fromDay
             original_day = request.fromDay
 
