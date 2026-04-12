@@ -43,11 +43,11 @@ def build_search_state(instance, solution):
         for req in instance.Requests
     }
 
-    for day in solution.days:
+    for day in solution.days:#this loop counts the number of tools used per day, and checks for consistency of the solution
         d = day.day_number
         for route in day.routes:
             for stop in route.stops:
-                if stop == 0:
+                if stop == 0:#this is the depot stop, it can be ingored
                     continue
 
                 request_id = abs(stop)
@@ -64,7 +64,7 @@ def build_search_state(instance, solution):
                     request_state[request_id]["pickup_day"] = d
 
     # Rebuild tool usage from request assignments
-    for req in instance.Requests:#looks at all requests in the solution. It updates the tool usage and checks for consistency (e.g., delivery before pickup, no partially scheduled requests).
+    for req in instance.Requests:#looks at all requests in the solution, and updates the tool usage for the days between delivery and pickup
         info = request_state[req.ID]
         if not info["scheduled"]:
             continue
