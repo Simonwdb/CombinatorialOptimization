@@ -91,6 +91,7 @@ def remove_request(instance, state, request_id):
 
     # Clean up empty days
     remove_empty_days(state.solution)
+    state.removal_log.append(request_id)
 
     return True
 

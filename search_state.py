@@ -3,6 +3,7 @@ class SearchState:
         self.solution = solution
         self.tool_use = tool_use
         self.request_state = request_state
+        self.removal_log = []
 
 
 
