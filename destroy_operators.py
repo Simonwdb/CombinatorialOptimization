@@ -124,3 +124,41 @@ def random_removal(instance, state, q, rng=None):
         remove_request(instance, state, rid)
 
     return to_remove
+
+def worst_removal(instance, state, q):
+    """
+    Remove the q requests that contribute most to the current cost.
+
+    Returns:
+        list of removed request IDs
+    """
+    scheduled = [
+        (rid, info) for rid, info in state.request_state.items()
+        if info["scheduled"]
+    ]
+
+    if not scheduled:
+        return []
+
+    # Calculate contribution to cost for each scheduled request
+    contributions = []
+    for rid, info in scheduled:
+        delivery_day = info["delivery_day"]
+        pickup_day = info["pickup_day"]
+
+        req = instance.Requests[rid - 1]
+
+        # ?? the contribution to the objective value will be the tool cost * how many tools + distance of specific route?? 
+        tool_cost = req.toolCount * instance.Tools[req.tool - 1].cost
+        distance_cost = instance.distance(0, rid) + instance.distance(rid, 0)  # depot to delivery and back
+        contribution = tool_cost + distance_cost
+        contributions.append((rid, contribution))
+
+    # Sort by contribution and select top q
+    contributions.sort(key=lambda x: x[1], reverse=True)
+    to_remove = [rid for rid, _ in contributions[:q]]
+
+    for rid in to_remove:
+        remove_request(instance, state, rid)
+
+    return to_remove

@@ -28,7 +28,10 @@ def build_search_state(instance, solution):
               "delivery_day": int or None,
               "pickup_day": int or None,
           }
-    Okay! we can use this for initializing the search state from a given solution, and also for validating that the solution is consistent with the instance data (e.g., no request is scheduled multiple times, delivery before pickup, etc.).
+    Okay! we can use this for initializing the search state from 
+    a given solution, and also for validating that the solution is 
+    consistent with the instance data (e.g., no request is scheduled multiple times, 
+    delivery before pickup, etc.).
     Copilot keeps finishing my sentences but it is accurate.
     """
     num_tools = len(instance.Tools)
