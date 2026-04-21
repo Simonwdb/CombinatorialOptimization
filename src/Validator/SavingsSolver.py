@@ -16,4 +16,18 @@ class SavingsSolver(BaseSolver):
     The input solution is not modified; a new Solution is returned.
     """
 
-    pass
+    def __init__(self, instance, solution):
+        super().__init__(instance)
+        self.initial_solution = solution
+
+    def solve(self, debug=False) -> Solution:
+        dist = self.instance.calcDistance
+        depot = self.instance.DepotCoordinate
+
+        new_solution = Solution()
+
+        for day in self.initial_solution.days:
+            improved_day = self._improve_day(day, dist, depot, debug)
+            new_solution.days.append(improved_day)
+
+        return new_solution
