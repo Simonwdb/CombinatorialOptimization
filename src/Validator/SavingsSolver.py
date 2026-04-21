@@ -111,3 +111,50 @@ class SavingsSolver(BaseSolver):
                 savings.append((saving, i, j))
 
         return savings
+    
+    def _is_feasible(self, stops, dist, depot):
+        """
+        Check capacity and max distance constraints per segment.
+        Start load = sum of all delivery weights (loaded at depot).
+        Pickup weights are added along the route.
+        """
+        # Compute start load: all tools for deliveries are loaded at the depot
+        current_load = 0
+        for stop in stops:
+            if stop > 0:
+                req = self.instance.Requests[stop - 1]
+                current_load += req.toolCount * self.instance.Tools[req.tool - 1].weight
+
+        # Check start load against capacity
+        if current_load > self.instance.Capacity:
+            return False
+
+        last_node = depot
+        total_dist = 0
+
+        for stop in stops[1:]:  # skip the first depot
+            if stop == 0:
+                node = depot
+            elif stop > 0:
+                node = self.instance.Requests[stop - 1].node
+            else:
+                node = self.instance.Requests[(-stop) - 1].node
+
+            total_dist += dist[last_node][node]
+            last_node = node
+
+            if stop > 0:
+                # Delivery: unload tools at customer, load decreases
+                req = self.instance.Requests[stop - 1]
+                current_load -= req.toolCount * self.instance.Tools[req.tool - 1].weight
+            elif stop < 0:
+                # Pickup: load tools at customer, load increases
+                req = self.instance.Requests[(-stop) - 1]
+                current_load += req.toolCount * self.instance.Tools[req.tool - 1].weight
+                if current_load > self.instance.Capacity:
+                    return False
+
+        if total_dist > self.instance.MaxDistance:
+            return False
+
+        return True
