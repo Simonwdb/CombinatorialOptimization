@@ -158,3 +158,12 @@ class SavingsSolver(BaseSolver):
             return False
 
         return True
+
+    def _get_node(self, stop):
+        """Return the coordinate index for a stop."""
+        if stop == 0:
+            return self.instance.DepotCoordinate
+        elif stop > 0:
+            return self.instance.Requests[stop - 1].node
+        else:
+            return self.instance.Requests[(-stop) - 1].node
