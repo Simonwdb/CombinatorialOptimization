@@ -51,3 +51,71 @@ class NearestNeighbourSolverV2(BaseSolver):
             pickup_day[request.ID] = pickup
 
         return delivery_day, pickup_day
+
+    def _plan_day_with_nn(self, deliveries, pickups):
+        """
+        Plans routes for a single day using Nearest Neighbour heuristic.
+        Each route first delivers, then picks up.
+        Returns a list of Route objects.
+        """
+        remaining_deliveries = list(deliveries)
+        remaining_pickups = list(pickups)
+        depot = self.instance.DepotCoordinate
+        capacity = self.instance.Capacity
+        max_distance = self.instance.MaxDistance
+        routes = []
+
+        while remaining_deliveries or remaining_pickups:
+            route = Route()
+            route.stops = [0]
+            current_node = depot
+            current_load = 0
+            current_distance = 0
+
+            # Phase 1: deliveries
+            while remaining_deliveries:
+                feasible_jobs = [
+                    r for r in remaining_deliveries
+                    if current_load + r.toolCount * self.instance.Tools[r.tool - 1].weight <= capacity
+                    and current_distance + self.instance.calcDistance[current_node][r.node] + self.instance.calcDistance[r.node][depot] <= max_distance
+                ]
+
+                if not feasible_jobs:
+                    break
+
+                beste_job = min(feasible_jobs, key=lambda r: self.instance.calcDistance[current_node][r.node])
+                weight = beste_job.toolCount * self.instance.Tools[beste_job.tool - 1].weight
+
+                route.stops.append(beste_job.ID)
+                current_load += weight
+                current_distance += self.instance.calcDistance[current_node][beste_job.node]
+                current_node = beste_job.node
+                remaining_deliveries.remove(beste_job)
+
+            # Reset load after deliveries (vehicle is now empty)
+            current_load = 0
+
+            # Phase 2: pickups
+            while remaining_pickups:
+                feasible_jobs = [
+                    r for r in remaining_pickups
+                    if current_load + r.toolCount * self.instance.Tools[r.tool - 1].weight <= capacity
+                    and current_distance + self.instance.calcDistance[current_node][r.node] + self.instance.calcDistance[r.node][depot] <= max_distance
+                ]
+
+                if not feasible_jobs:
+                    break
+
+                beste_job = min(feasible_jobs, key=lambda r: self.instance.calcDistance[current_node][r.node])
+                weight = beste_job.toolCount * self.instance.Tools[beste_job.tool - 1].weight
+
+                route.stops.append(-beste_job.ID)
+                current_load += weight
+                current_distance += self.instance.calcDistance[current_node][beste_job.node]
+                current_node = beste_job.node
+                remaining_pickups.remove(beste_job)
+
+            route.stops.append(0)
+            routes.append(route)
+
+        return routes
