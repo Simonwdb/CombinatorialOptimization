@@ -51,3 +51,51 @@ class NearestNeighbourSolver(BaseSolver):
             pickup_day[request.ID] = pickup
 
         return delivery_day, pickup_day
+    
+    def _plan_jobs_with_nn(self, jobs, is_delivery):
+        """
+        Plans a list of jobs using Nearest Neighbour heuristic.
+        Returns a list of Route objects.
+        
+        For deliveries (is_delivery=True): route stops are positive request IDs.
+        For pickups (is_delivery=False): route stops are negative request IDs.
+        """
+        remaining = list(jobs)
+        depot = self.instance.DepotCoordinate
+        capacity = self.instance.Capacity
+        max_distance = self.instance.MaxDistance
+        routes = []
+
+        while remaining:
+            route = Route()
+            route.stops = [0]
+            current_node = depot
+            current_load = 0
+            current_distance = 0
+
+            while remaining:
+                # Find all feasible jobs
+                feasible_jobs = [
+                    r for r in remaining
+                    if current_load + r.toolCount * self.instance.Tools[r.tool - 1].weight <= capacity
+                    and current_distance + self.instance.calcDistance[current_node][r.node] + self.instance.calcDistance[r.node][depot] <= max_distance
+                ]
+
+                if not feasible_jobs:
+                    break
+
+                # Choose nearest feasible job
+                beste_job = min(feasible_jobs, key=lambda r: self.instance.calcDistance[current_node][r.node])
+                weight = beste_job.toolCount * self.instance.Tools[beste_job.tool - 1].weight
+
+                # Add to route (positive for delivery, negative for pickup)
+                route.stops.append(beste_job.ID if is_delivery else -beste_job.ID)
+                current_load += weight
+                current_distance += self.instance.calcDistance[current_node][beste_job.node]
+                current_node = beste_job.node
+                remaining.remove(beste_job)
+
+            route.stops.append(0)
+            routes.append(route)
+
+        return routes
