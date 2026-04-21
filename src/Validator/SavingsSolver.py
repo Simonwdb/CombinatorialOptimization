@@ -31,3 +31,57 @@ class SavingsSolver(BaseSolver):
             new_solution.days.append(improved_day)
 
         return new_solution
+
+    def _improve_day(self, day, dist, depot, debug):
+        """Apply Clarke & Wright savings to all routes on a given day."""
+        routes = [list(route.stops) for route in day.routes]
+
+        # Compute savings once for all pairs of single-stop routes
+        savings = self._compute_savings(routes, dist, depot)
+        savings.sort(key=lambda x: x[0], reverse=True)
+
+        if debug:
+            print(f"\nDag {day.day_number}: {len(routes)} routes, {len(savings)} savings-paren")
+
+        merged_count = 0
+
+        for saving, i, j in savings:
+            if saving <= 0:
+                break
+
+            # Skip if either route has already been merged into another
+            if routes[i] is None or routes[j] is None:
+                continue
+
+            inner_i = routes[i][1:-1]
+            inner_j = routes[j][1:-1]
+
+            merged = None
+            for candidate in [[0] + inner_i + inner_j + [0], [0] + inner_j + inner_i + [0]]:
+                if self._is_feasible(candidate, dist, depot):
+                    merged = candidate
+                    break
+
+            if merged is not None:
+                if debug:
+                    print(f"  Saving {saving}: merge {routes[i]} + {routes[j]} -> {merged}")
+                routes[i] = merged
+                routes[j] = None
+                merged_count += 1
+            else:
+                if debug:
+                    print(f"  Saving {saving}: {routes[i]} + {routes[j]} NIET feasible")
+
+        if debug:
+            remaining = [r for r in routes if r is not None]
+            print(f"  Resultaat: {merged_count} merges, {len(remaining)} routes over")
+
+        # Build the new Day with remaining routes
+        new_day = Day(day.day_number)
+        for stops in routes:
+            if stops is not None:
+                r = Route()
+                r.stops = stops
+                new_day.routes.append(r)
+
+        return new_day
