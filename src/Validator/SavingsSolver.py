@@ -85,3 +85,29 @@ class SavingsSolver(BaseSolver):
                 new_day.routes.append(r)
 
         return new_day
+
+    def _compute_savings(self, routes, dist, depot):
+        """
+        Compute Clarke & Wright savings for all pairs of single-stop routes.
+        s(i,j) = d(depot, i) + d(depot, j) - d(i, j)
+        Only considers pairs where both routes have exactly one customer stop.
+        Returns a list of (saving, index_i, index_j).
+        """
+        savings = []
+
+        for i in range(len(routes)):
+            for j in range(i + 1, len(routes)):
+                # Only consider single-stop routes: [0, x, 0]
+                if len(routes[i]) != 3 or len(routes[j]) != 3:
+                    continue
+
+                stop_i = routes[i][1]
+                stop_j = routes[j][1]
+
+                node_i = self._get_node(stop_i)
+                node_j = self._get_node(stop_j)
+
+                saving = dist[depot][node_i] + dist[depot][node_j] - dist[node_i][node_j]
+                savings.append((saving, i, j))
+
+        return savings
