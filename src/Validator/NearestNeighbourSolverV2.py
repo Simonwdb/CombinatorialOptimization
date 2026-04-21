@@ -119,3 +119,48 @@ class NearestNeighbourSolverV2(BaseSolver):
             routes.append(route)
 
         return routes
+
+    def solve(self) -> Solution:
+        """
+        Builds a solution using Nearest Neighbour routing.
+        Each route first delivers, then picks up.
+        """
+        solution = Solution()
+
+        # Step 1: determine delivery and pickup days
+        delivery_day, pickup_day = self._determine_days()
+
+        # Step 2: group jobs per day
+        deliveries_per_day = {}
+        pickups_per_day = {}
+
+        for request in self.instance.Requests:
+            if request.ID not in delivery_day:
+                continue
+
+            d_day = delivery_day[request.ID]
+            p_day = pickup_day[request.ID]
+
+            if d_day not in deliveries_per_day:
+                deliveries_per_day[d_day] = []
+            deliveries_per_day[d_day].append(request)
+
+            if p_day not in pickups_per_day:
+                pickups_per_day[p_day] = []
+            pickups_per_day[p_day].append(request)
+
+        # Step 3: plan routes per day
+        all_days = set(deliveries_per_day.keys()) | set(pickups_per_day.keys())
+        days = {}
+
+        for day_number in sorted(all_days):
+            day = Day(day_number)
+            deliveries = deliveries_per_day.get(day_number, [])
+            pickups = pickups_per_day.get(day_number, [])
+
+            day.routes = self._plan_day_with_nn(deliveries, pickups)
+            days[day_number] = day
+
+        solution.days = [days[d] for d in sorted(days.keys())]
+
+        return solution
