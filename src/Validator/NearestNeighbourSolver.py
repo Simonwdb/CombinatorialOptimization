@@ -99,3 +99,61 @@ class NearestNeighbourSolver(BaseSolver):
             routes.append(route)
 
         return routes
+    
+    def solve(self) -> Solution:
+        """
+        Builds a solution using Nearest Neighbour routing.
+        Deliveries are planned first, then pickups for each day.
+        """
+        solution = Solution()
+
+        # Step 1: determine delivery and pickup days
+        delivery_day, pickup_day = self._determine_days()
+
+        # Step 2: group jobs per day
+        deliveries_per_day = {}
+        pickups_per_day = {}
+
+        for request in self.instance.Requests:
+            if request.ID not in delivery_day:
+                continue
+
+            d_day = delivery_day[request.ID]
+            p_day = pickup_day[request.ID]
+
+            if d_day not in deliveries_per_day:
+                deliveries_per_day[d_day] = []
+            deliveries_per_day[d_day].append(request)
+
+            if p_day not in pickups_per_day:
+                pickups_per_day[p_day] = []
+            pickups_per_day[p_day].append(request)
+
+        # Step 3: plan routes per day using NN
+        all_days = set(deliveries_per_day.keys()) | set(pickups_per_day.keys())
+
+        days = {}
+        for day_number in sorted(all_days):
+            day = Day(day_number)
+
+            # Plan deliveries first
+            if day_number in deliveries_per_day:
+                delivery_routes = self._plan_jobs_with_nn(
+                    deliveries_per_day[day_number],
+                    is_delivery=True
+                )
+                day.routes.extend(delivery_routes)
+
+            # Plan pickups second
+            if day_number in pickups_per_day:
+                pickup_routes = self._plan_jobs_with_nn(
+                    pickups_per_day[day_number],
+                    is_delivery=False
+                )
+                day.routes.extend(pickup_routes)
+
+            days[day_number] = day
+
+        solution.days = [days[d] for d in sorted(days.keys())]
+
+        return solution
