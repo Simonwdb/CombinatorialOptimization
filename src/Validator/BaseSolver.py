@@ -1,4 +1,4 @@
-from Solution import Solution
+from .Solution import Solution
 
 class BaseSolver:
     def __init__(self, instance):

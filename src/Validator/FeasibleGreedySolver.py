@@ -1,5 +1,5 @@
-from BaseSolver import BaseSolver
-from Solution import Solution, Day, Route
+from .BaseSolver import BaseSolver
+from .Solution import Solution, Day, Route
 
 class FeasibleGreedySolver(BaseSolver):
     """
