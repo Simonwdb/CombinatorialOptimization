@@ -150,7 +150,7 @@ def worst_removal(instance, state, q):
 
         # ?? the contribution to the objective value will be the tool cost * how many tools + distance of specific route?? 
         tool_cost = req.toolCount * instance.Tools[req.tool - 1].cost
-        distance_cost = instance.distance(0, rid) + instance.distance(rid, 0)  # depot to delivery and back
+        distance_cost = instance.calcDistance[0][req.node] + instance.calcDistance[req.node][0]
         contribution = tool_cost + distance_cost
         contributions.append((rid, contribution))
 
