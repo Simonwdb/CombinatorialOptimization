@@ -27,11 +27,14 @@ VALIDATOR_DIR = os.path.join(os.path.dirname(__file__), "src", "Validator")
 if VALIDATOR_DIR not in sys.path:
     sys.path.insert(0, VALIDATOR_DIR)
 
+from src.Validator.SavingsSolver import SavingsSolver
+from src.Validator.NearestNeighbourSolverV2 import NearestNeighbourSolverV2
+from src.Validator.NearestNeighbourSolver import NearestNeighbourSolver
 from src.Validator.FeasibleGreedySolver import FeasibleGreedySolver
 from src.Validator.Writer import write_solution
 from src.Validator.InstanceCVRPTWUI import InstanceCVRPTWUI
 from search_state import build_search_state
-from destroy_operators import random_removal, worst_removal
+from destroy_operators import random_removal, shaw_removal, worst_removal
 from repair_operators import greedy_repair, random_day_repair, regret2_repair, regret3_repair
 
 
@@ -100,7 +103,8 @@ def alns(instance, iterations=200, q=5, seed=0, verbose=True):
     rng = random.Random(seed)
 
     # Step 0: build a starting plan with the simple feasible greedy solver.
-    solution = FeasibleGreedySolver(instance).solve()
+    initial_solution = NearestNeighbourSolverV2(instance).solve()
+    solution = SavingsSolver(instance, solution = initial_solution).solve()
     state = build_search_state(instance, solution)
 
     best_cost, init_dist, init_v, init_vd, _ = solution_cost(instance, state)
@@ -115,6 +119,7 @@ def alns(instance, iterations=200, q=5, seed=0, verbose=True):
     destroy_ops = [
         ("random_removal", lambda inst, s: random_removal(inst, s, q, rng)),
         ("worst_removal",  lambda inst, s: worst_removal(inst, s, q)),
+        ("shaw_removal",   lambda inst, s: shaw_removal(inst, s, q)),
     ]
     repair_ops = [
         ("greedy_repair",     lambda inst, s: greedy_repair(inst, s)),
@@ -172,7 +177,7 @@ if __name__ == "__main__":
     instance = InstanceCVRPTWUI(instance_file, "txt")
     instance.calculateDistances()
 
-    best_state, best_cost = alns(instance, iterations=300, q=10, seed=0)
+    best_state, best_cost = alns(instance, iterations=10000, q=10, seed=0)
 
     print(f"Best cost: {best_cost}")
     print("Solution written to ALNSSolution.txt")

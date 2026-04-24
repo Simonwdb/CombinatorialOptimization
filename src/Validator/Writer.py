@@ -1,4 +1,4 @@
-from .Solution import Solution
+from Solution import Solution
 
 def write_solution(solution: Solution, instance, filename: str):
     """
