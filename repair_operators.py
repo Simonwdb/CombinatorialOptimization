@@ -396,6 +396,74 @@ def regret2_repair(instance, state, rng=None):
     return inserted
 
 
+def regret3_repair(instance, state, rng=None):
+    """
+    Regret-3 repair — similar to regret-2 but considers the third-best option.
+
+    The idea: prioritize requests where the difference between the best and
+    third-best insertion cost is large, indicating higher opportunity cost
+    of not placing it optimally.
+    """
+    if rng is None:
+        rng = random
+
+    inserted = 0
+    while True:
+        unscheduled = [rid for rid, info in state.request_state.items() if not info["scheduled"]]
+        if not unscheduled:
+            break  # everybody is placed, we're done
+
+        best_rid = None
+        best_regret = None
+        best_choice = None  # (insertion_cost, delivery_day, pickup_day)
+
+        for rid in unscheduled:
+            req = instance.Requests[rid - 1]
+            # Score every legal day pair for this request.
+            options = []
+            for d, p in _feasible_day_windows(instance, req):
+                if not tool_available_for_rental(instance, state, rid, d, p):
+                    continue
+                cost_d = _estimate_insertion_cost(instance, state, d, rid)
+                cost_p = _estimate_insertion_cost(instance, state, p, -rid)
+                if cost_d is None or cost_p is None:
+                    continue
+                options.append((cost_d + cost_p, d, p))
+            if not options:
+                continue
+            options.sort(key=lambda x: x[0])  # cheapest first
+            best = options[0][0]
+            # Regret-3: difference between third-best and best
+            if len(options) >= 3:
+                third = options[2][0]
+            elif len(options) == 2:
+                third = options[1][0]  # fallback to regret-2
+            else:
+                third = best + 1  # small regret if only one option
+            regret = third - best
+            # Pick the request with the biggest regret; ties break by cheapest.
+            if (best_regret is None
+                or regret > best_regret
+                or (regret == best_regret and options[0][0] < best_choice[0])):
+                best_regret = regret
+                best_rid = rid
+                best_choice = (options[0][0], options[0][1], options[0][2])
+
+        if best_rid is None:
+            break  # none of the remaining requests can be placed
+
+        _, d, p = best_choice
+        if _apply_request_insertion(instance, state, best_rid, d, p):
+            inserted += 1
+        else:
+            # Safety net — if our estimate said feasible but the real insert
+            # fails, bail out instead of spinning forever.
+            break
+
+    state.solution.days.sort(key=lambda x: x.day_number)
+    return inserted
+
+
 def _estimate_insertion_cost(instance, state, day_num, stop_value):
     """
     What's the cheapest way to add this stop on this day?

@@ -32,7 +32,7 @@ from src.Validator.Writer import write_solution
 from src.Validator.InstanceCVRPTWUI import InstanceCVRPTWUI
 from search_state import build_search_state
 from destroy_operators import random_removal, worst_removal
-from repair_operators import greedy_repair, random_day_repair, regret2_repair
+from repair_operators import greedy_repair, random_day_repair, regret2_repair, regret3_repair
 
 
 def _stop_node(instance, stop):
@@ -120,6 +120,7 @@ def alns(instance, iterations=200, q=5, seed=0, verbose=True):
         ("greedy_repair",     lambda inst, s: greedy_repair(inst, s)),
         ("random_day_repair", lambda inst, s: random_day_repair(inst, s, rng)),
         ("regret2_repair",    lambda inst, s: regret2_repair(inst, s, rng)),
+        ("regret3_repair",    lambda inst, s: regret3_repair(inst, s, rng)),
     ]
 
     # Main loop.
