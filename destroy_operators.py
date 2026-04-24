@@ -150,7 +150,7 @@ def worst_removal(instance, state, q):
 
         # ?? the contribution to the objective value will be the tool cost * how many tools + distance of specific route?? 
         tool_cost = req.toolCount * instance.Tools[req.tool - 1].cost
-        distance_cost = instance.distance(0, rid) + instance.distance(rid, 0)  # depot to delivery and back
+        distance_cost = instance.calcDistance[0][req.node] + instance.calcDistance[req.node][0]
         contribution = tool_cost + distance_cost
         contributions.append((rid, contribution))
 
@@ -162,3 +162,123 @@ def worst_removal(instance, state, q):
         remove_request(instance, state, rid)
 
     return to_remove
+
+
+
+
+def shaw_relatedness(
+    instance,
+    state,
+    request_id_1,
+    request_id_2,
+    w_distance=1.0,
+    w_time=10.0,
+    w_tool=100.0,
+):
+    """
+    Compute Shaw relatedness between two requests.
+
+    Lower score means the requests are more related.
+    """
+    req1 = instance.Requests[request_id_1 - 1]
+    req2 = instance.Requests[request_id_2 - 1]
+
+    distance_score = instance.calcDistance[req1.node][req2.node]
+
+    day1 = state.request_state[request_id_1]["delivery_day"]
+    day2 = state.request_state[request_id_2]["delivery_day"]
+
+    if day1 is None:
+        day1 = req1.fromDay
+    if day2 is None:
+        day2 = req2.fromDay
+
+    time_score = abs(day1 - day2)
+
+    if req1.tool == req2.tool:
+        tool_score = 0
+    else:
+        tool_score = 1
+
+    return (
+        (w_distance * distance_score) + (w_time * time_score) + (w_tool * tool_score)
+    )
+
+
+def shaw_removal(
+    instance,
+    state,
+    q,
+    rng=None,
+    randomness_power=6,
+    w_distance=1.0,
+    w_time=10.0,
+    w_tool=100.0,
+):
+    """
+    Shaw removal destroy operator.
+
+    Removes q related scheduled requests from the current solution.
+
+    Returns:
+        List of removed request IDs.
+    """
+    if rng is None:
+        rng = random
+
+    scheduled = [
+        rid for rid, info in state.request_state.items()
+        if info["scheduled"]
+    ]
+
+    if not scheduled:
+        return []
+
+    q = min(q, len(scheduled))
+
+    seed = rng.choice(scheduled)
+
+    removed = [seed]
+    remove_request(instance, state, seed)
+
+    while len(removed) < q:
+        candidates = [
+            rid for rid, info in state.request_state.items()
+            if info["scheduled"]
+        ]
+
+        if not candidates:
+            break
+
+        relatedness_scores = []
+
+        for candidate in candidates:
+            best_relatedness = min(
+                shaw_relatedness(
+                    instance,
+                    state,
+                    candidate,
+                    removed_request,
+                    w_distance=w_distance,
+                    w_time=w_time,
+                    w_tool=w_tool,
+                )
+                for removed_request in removed
+            )
+
+            relatedness_scores.append((candidate, best_relatedness))
+
+        relatedness_scores.sort(key=lambda x: x[1])
+
+        # Biased random choice:
+        # index near 0 is more likely, but not guaranteed.
+        u = rng.random()
+        index = int((u ** randomness_power) * len(relatedness_scores))
+        index = min(index, len(relatedness_scores) - 1)
+
+        chosen_request = relatedness_scores[index][0]
+
+        remove_request(instance, state, chosen_request)
+        removed.append(chosen_request)
+
+    return removed
