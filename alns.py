@@ -3,6 +3,7 @@ import math
 import os
 import random
 import sys
+import time
 
 # Adaptive Large Neighborhood Search for the VeRoLog CVRPTWUI problem.
 # Loop: take current solution -> destroy a few requests -> repair them ->
@@ -240,7 +241,9 @@ if __name__ == "__main__":
     instance = InstanceCVRPTWUI(instance_file, "txt")
     instance.calculateDistances()
 
-    best_state, best_cost = alns(instance, iterations=10000, q=10, seed=0)
-
+    start = time.perf_counter()
+    best_state, best_cost = alns(instance, iterations=5000, q=10, seed=0)
+    end = time.perf_counter()
+    print(f"runtime = {end - start:.2f} seconds")
     print(f"Best cost: {best_cost}")
     print("Solution written to ALNSSolution.txt")
