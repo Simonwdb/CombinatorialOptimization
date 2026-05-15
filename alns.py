@@ -34,18 +34,12 @@ VALIDATOR_DIR = os.path.join(os.path.dirname(__file__), "src", "Validator")
 if VALIDATOR_DIR not in sys.path:
     sys.path.insert(0, VALIDATOR_DIR)
 
-from src.Validator.SavingsSolver import SavingsSolver
-from src.Validator.NearestNeighbourSolverV2 import NearestNeighbourSolverV2
+from src.Validator.FeasibleGreedySolver import FeasibleGreedySolver
 from src.Validator.Writer import write_solution
 from src.Validator.InstanceCVRPTWUI import InstanceCVRPTWUI
 from search_state import build_search_state
 from destroy_operators import random_removal, worst_removal
-from destroy_shaw import shaw_removal
-from destroy_route import route_removal
-from destroy_cluster import cluster_removal
-from repair_operators import greedy_repair, random_day_repair, regret2_repair
-from repair_regret3 import regret3_repair
-from repair_best_global import best_global_repair
+from repair_operators import greedy_repair, random_day_repair, regret2_repair, regret3_repair
 
 
 def _stop_node(instance, stop):
@@ -227,16 +221,12 @@ def alns(
     destroy_pool = OperatorPool()
     destroy_pool.add("random_removal",  lambda inst, s: random_removal(inst, s, q, rng))
     destroy_pool.add("worst_removal",   lambda inst, s: worst_removal(inst, s, q))
-    destroy_pool.add("shaw_removal",    lambda inst, s: shaw_removal(inst, s, q, rng))
-    destroy_pool.add("route_removal",   lambda inst, s: route_removal(inst, s, q, rng))
-    destroy_pool.add("cluster_removal", lambda inst, s: cluster_removal(inst, s, q, rng))
 
     repair_pool = OperatorPool()
     repair_pool.add("greedy_repair",      lambda inst, s: greedy_repair(inst, s))
     repair_pool.add("random_day_repair",  lambda inst, s: random_day_repair(inst, s, rng))
     repair_pool.add("regret2_repair",     lambda inst, s: regret2_repair(inst, s, rng))
     repair_pool.add("regret3_repair",     lambda inst, s: regret3_repair(inst, s, rng))
-    repair_pool.add("best_global_repair", lambda inst, s: best_global_repair(inst, s, rng))
 
     # -------------------------------------------------------------------------
     # Simulated annealing temperature schedule
