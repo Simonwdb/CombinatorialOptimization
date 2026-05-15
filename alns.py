@@ -119,10 +119,11 @@ def solution_cost(instance, state):
 # =============================================================================
 
 SIGMA1 = 33   # stars for a new best solution
-SIGMA2 = 9    # stars for improving current
-SIGMA3 = 13   # stars for accepting a worse plan (means we escaped a dead-end)
+SIGMA2 = 13   # stars for improving current
+SIGMA3 = 9    # stars for accepting a worse plan (means we escaped a dead-end)
 REACTION = 0.1  # how fast weights react to new scores (0=never, 1=instantly)
 SEGMENT_LEN = 100  # how many iters per learning round
+WEIGHT_FLOOR = 0.2  # minimum weight per operator (keep exploration alive)
 
 
 class OperatorPool:
@@ -164,18 +165,28 @@ class OperatorPool:
 
     def end_segment(self):
         # Learning step: new_weight = (1-r) * old_weight + r * (stars / uses).
-        # Then reset scores & uses so the next segment starts fresh.
+        # Then renormalize so the mean weight stays at 1.0 — otherwise once the
+        # SA temperature cools and almost no candidate gets accepted, every
+        # operator scores ~0 stars/use and the EMA drags ALL weights down to
+        # the floor, erasing the distinction between operators. Renormalizing
+        # preserves *relative* performance even when absolute scores collapse.
         for name in self._order:
             uses = self._uses[name]
             if uses > 0:
                 avg = self._score[name] / uses
                 self._weight[name] = (1 - REACTION) * self._weight[name] + REACTION * avg
             # If uses==0 we just keep the old weight (no info to learn from).
-            # Tiny floor so a bad round can't starve an operator forever.
-            if self._weight[name] < 0.05:
-                self._weight[name] = 0.05
+            if self._weight[name] < WEIGHT_FLOOR:
+                self._weight[name] = WEIGHT_FLOOR
             self._score[name] = 0.0
             self._uses[name] = 0
+        # Renormalize so weights average to 1.0 (preserves ratios, prevents drift).
+        total = sum(self._weight[n] for n in self._order)
+        if total > 0:
+            target = float(len(self._order))
+            scale = target / total
+            for name in self._order:
+                self._weight[name] *= scale
 
     def snapshot(self):
         # Small helper for logging: sorted list of (name, weight).
