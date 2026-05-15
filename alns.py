@@ -204,8 +204,8 @@ def alns(
 
     # Step 0: build a starting plan. Nearest-neighbour gives us something
     # feasible, then Clark-Wright savings tries to merge routes cheaply.
-    initialSolution = FeasibleGreedySolver(instance).solve()
-    solution = SavingsSolver(instance, initialSolution).solve()
+    solution = FeasibleGreedySolver(instance).solve()
+    #solution = SavingsSolver(instance, initialSolution).solve()
     state = build_search_state(instance, solution)
 
     best_cost, init_dist, init_v, init_vd, _ = solution_cost(instance, state)
